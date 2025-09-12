@@ -1,0 +1,131 @@
+-- Serviços
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local LocalPlayer = Players.LocalPlayer
+local RE = ReplicatedStorage:WaitForChild("RE"):WaitForChild("1Playe1rTrigge1rEven1t")
+
+-- Criar GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local Main = Instance.new("Frame")
+Main.Size = UDim2.new(0, 220, 0, 140)
+Main.Position = UDim2.new(0.35, 0, 0.35, 0)
+Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+Main.Active = true
+Main.Draggable = true
+Main.Parent = ScreenGui
+
+-- Cantos arredondados
+Instance.new("UICorner", Main)
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Title.Text = "Enviar celular kkj"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.Parent = Main
+Instance.new("UICorner", Title)
+
+local TextBox = Instance.new("TextBox")
+TextBox.Size = UDim2.new(1, -20, 0, 35)
+TextBox.Position = UDim2.new(0, 10, 0, 40)
+TextBox.PlaceholderText = "Digite o nome do player..."
+TextBox.Text = ""
+TextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextBox.Font = Enum.Font.Gotham
+TextBox.TextSize = 14
+TextBox.Parent = Main
+Instance.new("UICorner", TextBox)
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(1, -20, 0, 35)
+ToggleButton.Position = UDim2.new(0, 10, 0, 85)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.Text = "Ativar"
+ToggleButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.TextSize = 14
+ToggleButton.Parent = Main
+Instance.new("UICorner", ToggleButton)
+
+-- Variáveis
+local ativo = false
+local loopTask
+local basePart -- plataforma que vai seguir você
+
+-- Criar base nos pés
+local function criarBase()
+    if basePart and basePart.Parent then
+        basePart:Destroy()
+    end
+    basePart = Instance.new("Part")
+    basePart.Size = Vector3.new(6, 1, 6)
+    basePart.Anchored = true
+    basePart.Transparency = 1 -- invisível
+    basePart.CanCollide = true
+    basePart.Name = "FollowBase"
+    basePart.Parent = workspace
+end
+
+-- Função para enviar o remote
+local function enviarRemote(playerName)
+    local target = Players:FindFirstChild(playerName)
+    if target then
+        local args = {
+            [1] = "ToolGiveToServer",
+            [2] = target,
+            [3] = "Iphone"
+        }
+        RE:FireServer(unpack(args))
+    end
+end
+
+-- Toggle
+ToggleButton.MouseButton1Click:Connect(function()
+    ativo = not ativo
+    if ativo then
+        ToggleButton.Text = "Desativar"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        ToggleButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+
+        criarBase()
+        loopTask = task.spawn(function()
+            while ativo do
+                local playerName = TextBox.Text
+                local target = Players:FindFirstChild(playerName)
+
+                if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                    local pos = target.Character.HumanoidRootPart.Position + Vector3.new(0, -8, 0)
+
+                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(pos)
+                    end
+
+                    if basePart then
+                        basePart.CFrame = CFrame.new(pos - Vector3.new(0, 3.5, 0))
+                    end
+
+                    enviarRemote(playerName)
+                end
+
+                task.wait(0.3)
+            end
+        end)
+    else
+        ToggleButton.Text = "Ativar"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        ToggleButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+
+        if loopTask then
+            task.cancel(loopTask)
+        end
+        if basePart and basePart.Parent then
+            basePart:Destroy()
+        end
+    end
+end)
