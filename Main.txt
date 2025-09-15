@@ -10,7 +10,7 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 220, 0, 140)
+Main.Size = UDim2.new(0, 220, 0, 180)
 Main.Position = UDim2.new(0.35, 0, 0.35, 0)
 Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 Main.Active = true
@@ -53,10 +53,24 @@ ToggleButton.TextSize = 14
 ToggleButton.Parent = Main
 Instance.new("UICorner", ToggleButton)
 
+local AllButton = Instance.new("TextButton")
+AllButton.Size = UDim2.new(1, -20, 0, 35)
+AllButton.Position = UDim2.new(0, 10, 0, 130)
+AllButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+AllButton.Text = "All (Desligado)"
+AllButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+AllButton.Font = Enum.Font.GothamBold
+AllButton.TextSize = 14
+AllButton.Parent = Main
+Instance.new("UICorner", AllButton)
+
 -- Variáveis
 local ativo = false
+local ativoAll = false
 local loopTask
-local basePart -- plataforma que vai seguir você
+local allLoopTask
+local basePart
+local originalCFrame
 
 -- Criar base nos pés
 local function criarBase()
@@ -66,7 +80,7 @@ local function criarBase()
     basePart = Instance.new("Part")
     basePart.Size = Vector3.new(6, 1, 6)
     basePart.Anchored = true
-    basePart.Transparency = 1 -- invisível
+    basePart.Transparency = 1
     basePart.CanCollide = true
     basePart.Name = "FollowBase"
     basePart.Parent = workspace
@@ -85,14 +99,11 @@ local function enviarRemote(playerName)
     end
 end
 
--- Toggle
+-- Toggle individual
 ToggleButton.MouseButton1Click:Connect(function()
     ativo = not ativo
     if ativo then
         ToggleButton.Text = "Desativar"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        ToggleButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-
         criarBase()
         loopTask = task.spawn(function()
             while ativo do
@@ -112,20 +123,43 @@ ToggleButton.MouseButton1Click:Connect(function()
 
                     enviarRemote(playerName)
                 end
-
                 task.wait(0.3)
             end
         end)
     else
         ToggleButton.Text = "Ativar"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        ToggleButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+        if loopTask then task.cancel(loopTask) end
+        if basePart and basePart.Parent then basePart:Destroy() end
+    end
+end)
 
-        if loopTask then
-            task.cancel(loopTask)
-        end
-        if basePart and basePart.Parent then
-            basePart:Destroy()
+-- Toggle ALL
+AllButton.MouseButton1Click:Connect(function()
+    ativoAll = not ativoAll
+    if ativoAll then
+        AllButton.Text = "All (Ligado)"
+        originalCFrame = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.CFrame
+        allLoopTask = task.spawn(function()
+            while ativoAll do
+                for _, plr in ipairs(Players:GetPlayers()) do
+                    if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                        local pos = plr.Character.HumanoidRootPart.Position + Vector3.new(0, -8, 0)
+
+                        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(pos)
+                        end
+
+                        enviarRemote(plr.Name)
+                        task.wait(0.2)
+                    end
+                end
+            end
+        end)
+    else
+        AllButton.Text = "All (Desligado)"
+        if allLoopTask then task.cancel(allLoopTask) end
+        if originalCFrame and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = originalCFrame
         end
     end
 end)
